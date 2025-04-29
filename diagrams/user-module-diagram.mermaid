@@ -1,0 +1,40 @@
+erDiagram
+    USER {
+        uuid id PK
+        string username
+        string password
+        string first_name
+        string last_name
+        string email
+        boolean is_active
+        boolean is_staff
+        boolean is_superuser
+        datetime last_login
+        datetime date_joined
+        uuid department_id FK
+        uuid role_id FK
+        datetime deleted_at
+        datetime created_at
+        datetime updated_at
+    }
+    
+    DEPARTMENT {
+        uuid id PK
+        string name
+        string description
+        datetime created_at
+        datetime updated_at
+    }
+    
+    ROLE {
+        uuid id PK
+        string name
+        string description
+        uuid department_id FK
+        datetime created_at
+        datetime updated_at
+    }
+    
+    USER ||--o| DEPARTMENT : "belongs to"
+    USER ||--o| ROLE : "has"
+    ROLE }|--|| DEPARTMENT : "belongs to"

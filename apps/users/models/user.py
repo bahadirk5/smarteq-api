@@ -25,27 +25,6 @@ class User(AbstractUser):
     )
     deleted_at = models.DateTimeField(_("Deleted At"), null=True, blank=True)
     
-    # Override the ManyToMany fields with custom related_name values
-    groups = models.ManyToManyField(
-        'auth.Group',
-        verbose_name=_('groups'),
-        blank=True,
-        related_name='custom_user_set',
-        related_query_name='user',
-        help_text=_(
-            'The groups this user belongs to. A user will get all permissions '
-            'granted to each of their groups.'
-        ),
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        verbose_name=_('user permissions'),
-        blank=True,
-        related_name='custom_user_set',
-        related_query_name='user',
-        help_text=_('Specific permissions for this user.'),
-    )
-    
     class Meta:
         verbose_name = _("User")
         verbose_name_plural = _("Users")

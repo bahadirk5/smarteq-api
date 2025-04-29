@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 
+from apps.common.permissions import IsSuperUser, IsSystemAdmin
 from apps.users.serializers.user_serializers import (
     UserSerializer, UserDetailSerializer, UserCreateSerializer,
     UserUpdateSerializer, PasswordChangeSerializer
@@ -160,7 +161,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         return Response({"detail": "Password has been changed successfully."})
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperUser|IsSystemAdmin])
     def set_department(self, request, pk=None):
         """Set the user's department."""
         if 'department_id' not in request.data:
@@ -175,7 +176,7 @@ class UserViewSet(viewsets.ModelViewSet):
         
         return Response(UserSerializer(user).data)
     
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperUser|IsSystemAdmin])
     def set_role(self, request, pk=None):
         """Set the user's role."""
         if 'role_id' not in request.data:

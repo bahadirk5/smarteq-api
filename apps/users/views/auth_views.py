@@ -10,6 +10,9 @@ from apps.users.serializers.auth_serializers import (
     ChangePasswordSerializer, ResetPasswordRequestSerializer, ResetPasswordConfirmSerializer
 )
 from apps.users.services import UserService
+from rest_framework.views import APIView
+from apps.users.serializers.user_serializers import UserSerializer
+from apps.common.responses import success_response, error_response
 
 User = get_user_model()
 
@@ -40,10 +43,13 @@ class RegisterView(generics.CreateAPIView):
         })
         jwt_serializer.is_valid(raise_exception=True)
         
-        return Response({
-            'detail': _('User registered successfully.'),
-            'tokens': jwt_serializer.validated_data
-        }, status=status.HTTP_201_CREATED)
+        return success_response(
+            data={
+                'detail': _('User registered successfully.'),
+                'tokens': jwt_serializer.validated_data
+            }, 
+            status_code=status.HTTP_201_CREATED
+        )
 
 
 class LoginView(generics.GenericAPIView):
@@ -65,7 +71,7 @@ class LoginView(generics.GenericAPIView):
         })
         jwt_serializer.is_valid(raise_exception=True)
         
-        return Response(jwt_serializer.validated_data)
+        return success_response(data=jwt_serializer.validated_data)
 
 
 class ChangePasswordView(generics.GenericAPIView):
@@ -81,18 +87,18 @@ class ChangePasswordView(generics.GenericAPIView):
         
         # Check if old password is correct
         if not request.user.check_password(serializer.validated_data['old_password']):
-            return Response(
-                {'old_password': [_('Wrong password.')]},
-                status=status.HTTP_400_BAD_REQUEST
+            return error_response(
+                error_message=_('Wrong password.'),
+                status_code=status.HTTP_400_BAD_REQUEST
             )
         
         # Set new password
         request.user.set_password(serializer.validated_data['new_password'])
         request.user.save()
         
-        return Response(
-            {'detail': _('Password changed successfully.')},
-            status=status.HTTP_200_OK
+        return success_response(
+            data={'detail': _('Password changed successfully.')},
+            status_code=status.HTTP_200_OK
         )
 
 
@@ -113,9 +119,9 @@ class ResetPasswordRequestView(generics.GenericAPIView):
         # In a real application, send an email with reset link
         # For now, just return a success message
         
-        return Response(
-            {'detail': _('Password reset link has been sent to your email.')},
-            status=status.HTTP_200_OK
+        return success_response(
+            data={'detail': _('Password reset link has been sent to your email.')},
+            status_code=status.HTTP_200_OK
         )
 
 
@@ -133,7 +139,15 @@ class ResetPasswordConfirmView(generics.GenericAPIView):
         # In a real application, verify token and uid and reset password
         # For now, just return a success message
         
-        return Response(
-            {'detail': _('Password has been reset successfully.')},
-            status=status.HTTP_200_OK
+        return success_response(
+            data={'detail': _('Password has been reset successfully.')},
+            status_code=status.HTTP_200_OK
         )
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserSerializer(request.user)
+        return success_response(data=serializer.data)

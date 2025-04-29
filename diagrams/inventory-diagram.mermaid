@@ -1,0 +1,93 @@
+erDiagram
+    CATEGORY {
+        uuid id PK
+        string name
+        string description
+        uuid parent_category_id FK
+        datetime created_at
+        datetime updated_at
+    }
+
+    ITEM {
+        uuid id PK
+        string name
+        string sku
+        string description
+        string item_type
+        uuid category_id FK
+        string unit_of_measure
+        decimal cost_price
+        decimal selling_price
+        datetime created_at
+        datetime updated_at
+    }
+
+    BILL_OF_MATERIALS {
+        uuid id PK
+        uuid output_item_id FK
+        uuid input_item_id FK
+        decimal quantity_required
+        string unit_of_measure
+        integer sequence
+        datetime created_at
+        datetime updated_at
+    }
+
+    PRODUCTION_PROCESS {
+        uuid id PK
+        uuid project_id FK
+        string name
+        string description
+        datetime process_start_date
+        datetime process_end_date
+        uuid performed_by_id FK
+        string status
+        uuid target_output_item_id FK
+        decimal target_output_quantity
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROCESS_ITEM_INPUT {
+        uuid id PK
+        uuid process_id FK
+        uuid item_id FK
+        decimal quantity_consumed
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROCESS_ITEM_OUTPUT {
+        uuid id PK
+        uuid process_id FK
+        uuid item_id FK
+        decimal quantity_produced
+        datetime created_at
+        datetime updated_at
+    }
+
+    PURCHASE_ORDER_LINE {
+        uuid id PK
+        uuid purchase_order_id FK
+        uuid item_id FK
+        decimal quantity
+        decimal unit_price
+        datetime created_at
+        datetime updated_at
+    }
+
+    USER ||--o{ PROJECT : manages
+    USER ||--o{ PRODUCTION_PROCESS : performs
+
+    PROJECT ||--o{ PRODUCTION_PROCESS : includes
+
+    CATEGORY ||--o{ ITEM : categorizes
+    CATEGORY ||--o{ CATEGORY : has_subcategory
+    ITEM ||--o{ BILL_OF_MATERIALS : is_output_in
+    ITEM ||--o{ BILL_OF_MATERIALS : is_input_in
+    PRODUCTION_PROCESS ||--o{ PROCESS_ITEM_INPUT : consumes
+    PRODUCTION_PROCESS ||--o{ PROCESS_ITEM_OUTPUT : produces
+    ITEM ||--o{ PROCESS_ITEM_INPUT : is_consumed_in
+    ITEM ||--o{ PROCESS_ITEM_OUTPUT : is_produced_in
+    ITEM ||--o{ PURCHASE_ORDER_LINE : is_ordered_in
+    PRODUCTION_PROCESS ||--|| ITEM : targets

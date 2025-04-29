@@ -7,13 +7,22 @@ from apps.users.serializers.role_serializers import RoleSerializer
 from apps.users.models.user import User 
 
 class UserSerializer(serializers.ModelSerializer):
+    department_name = serializers.SerializerMethodField()
+    role_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'department', 'role', 'is_active', 'date_joined'
+            'department', 'department_name', 'role', 'role_name', 'is_active', 'date_joined'
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'department_name', 'role_name']
+    
+    def get_department_name(self, obj):
+        return obj.department.name if obj.department else None
+    
+    def get_role_name(self, obj):
+        return obj.role.name if obj.role else None
 
 
 class UserDetailSerializer(serializers.ModelSerializer):

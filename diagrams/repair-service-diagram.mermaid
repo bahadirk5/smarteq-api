@@ -1,0 +1,98 @@
+erDiagram
+    DEALER {
+        uuid id PK
+        string name
+        string contact_person
+        string phone
+        string email
+        string address
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    
+    PRODUCT {
+        uuid id PK
+        string name
+        string model
+        string serial_number
+        date warranty_start_date
+        int warranty_period_months
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    
+    REPAIR_REQUEST {
+        uuid id PK
+        uuid dealer_id FK
+        uuid product_id FK
+        string customer_name
+        string customer_phone
+        string customer_email
+        string issue_description
+        enum warranty_status "IN_WARRANTY|OUT_OF_WARRANTY"
+        enum status "CREATED|RECEIVED|PRICE_INFORMED|DEALER_APPROVED|PAYMENT_PENDING|IN_REPAIR|READY_FOR_DELIVERY|DELIVERED"
+        uuid technician_id FK
+        decimal service_fee
+        boolean payment_received
+        date received_date
+        date completion_date
+        date delivery_date
+        datetime created_at
+        datetime updated_at
+    }
+    
+    REPAIR_PART {
+        uuid id PK
+        uuid repair_request_id FK
+        uuid item_id FK
+        int quantity
+        decimal unit_price
+        decimal total_price
+        datetime created_at
+        datetime updated_at
+    }
+    
+    ITEM {
+        uuid id PK
+        string name
+        string code
+        string serial_number
+        enum item_type "RAW_MATERIAL|INTERMEDIATE|FINAL_PRODUCT|SPARE_PART"
+        string specifications
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+    
+    REPAIR_LOG {
+        uuid id PK
+        uuid repair_request_id FK
+        uuid user_id FK
+        enum status "CREATED|RECEIVED|PRICE_INFORMED|DEALER_APPROVED|PAYMENT_PENDING|IN_REPAIR|READY_FOR_DELIVERY|DELIVERED"
+        string description
+        datetime log_date
+        datetime created_at
+        datetime updated_at
+    }
+    
+    NOTIFICATION {
+        uuid id PK
+        uuid repair_request_id FK
+        enum type "EMAIL|SMS"
+        string recipient
+        string subject
+        string content
+        boolean is_sent
+        datetime sent_date
+        datetime created_at
+        datetime updated_at
+    }
+    
+    DEALER ||--o{ REPAIR_REQUEST : "creates"
+    PRODUCT ||--o{ REPAIR_REQUEST : "subject of"
+    REPAIR_REQUEST ||--o{ REPAIR_PART : "requires"
+    ITEM ||--o{ REPAIR_PART : "used in"
+    REPAIR_REQUEST ||--o{ REPAIR_LOG : "has"
+    REPAIR_REQUEST ||--o{ NOTIFICATION : "generates"
