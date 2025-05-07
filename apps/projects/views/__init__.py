@@ -1,0 +1,1 @@
+from .project_inventory_views import ProjectInventoryViewSet

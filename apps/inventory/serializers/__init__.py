@@ -18,6 +18,7 @@ from apps.inventory.serializers.purchase_order_line_serializer import (
     PurchaseOrderLineSerializer, PurchaseOrderLineDetailSerializer,
     PurchaseOrderLineBulkCreateSerializer, PurchaseOrderSummarySerializer
 )
+from .inventory_transaction_serializer import InventoryTransactionSerializer
 
 __all__ = [
     'CategorySerializer', 'CategoryListSerializer', 'CategoryDetailSerializer', 'CategoryHierarchySerializer',
@@ -30,4 +31,5 @@ __all__ = [
     'ProcessItemOutputDetailSerializer', 'ProductionProcessSummarySerializer',
     'PurchaseOrderLineSerializer', 'PurchaseOrderLineDetailSerializer',
     'PurchaseOrderLineBulkCreateSerializer', 'PurchaseOrderSummarySerializer',
+    'InventoryTransactionSerializer',
 ]

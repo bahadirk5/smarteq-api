@@ -4,11 +4,15 @@ from apps.inventory.models import Category
 
 class CategorySerializer(serializers.ModelSerializer):
     """Serializer for the Category model"""
+    parent_category_id = serializers.UUIDField(source='parent_category.id', required=False, allow_null=True)
     
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'parent_category', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'parent_category', 'parent_category_id', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'parent_category': {'write_only': True, 'required': False}
+        }
 
 
 class CategoryListSerializer(serializers.ModelSerializer):

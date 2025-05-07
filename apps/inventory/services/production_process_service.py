@@ -1,7 +1,9 @@
 from django.db import transaction
+from django.utils import timezone
 from apps.inventory.repositories.production_process_repository import ProductionProcessRepository
 from apps.inventory.repositories.item_repository import ItemRepository
 from apps.inventory.repositories.bill_of_materials_repository import BillOfMaterialsRepository
+from apps.inventory.repositories.inventory_transaction_repository import InventoryTransactionRepository
 
 
 class ProductionProcessService:
@@ -14,6 +16,7 @@ class ProductionProcessService:
         self.repository = ProductionProcessRepository()
         self.item_repository = ItemRepository()
         self.bom_repository = BillOfMaterialsRepository()
+        self.transaction_repository = InventoryTransactionRepository()
     
     def get_all_processes(self):
         """Get all production processes"""
@@ -79,7 +82,7 @@ class ProductionProcessService:
     
     @transaction.atomic
     def complete_process(self, process_id, end_date=None):
-        """Complete a production process"""
+        """Complete a production process and perform inventory adjustments"""
         process = self.repository.get_process_by_id(process_id)
         
         if process.status != 'IN_PROGRESS':
@@ -90,9 +93,47 @@ class ProductionProcessService:
         if not outputs.exists():
             raise ValueError("Cannot complete a process with no recorded outputs")
         
+        # Get all inputs that were consumed
+        inputs = self.repository.get_process_inputs(process_id)
+        
+        # For each input, reduce inventory and record a transaction
+        for input_record in inputs:
+            # Update item quantity in inventory
+            item = input_record.item
+            item.quantity -= input_record.quantity_consumed
+            self.item_repository.update(item.id, {'quantity': item.quantity})
+            
+            # Record inventory transaction for the consumed item
+            self.transaction_repository.create_transaction({
+                'item': item,
+                'transaction_type': 'PRODUCTION_IN',
+                'quantity': -input_record.quantity_consumed,  # Negative as it's being consumed
+                'reference_model': 'ProductionProcess',
+                'reference_id': process_id,
+                'notes': f"Consumed in production process: {process.name}"
+            })
+        
+        # For each output, increase inventory and record a transaction
+        for output_record in outputs:
+            # Update item quantity in inventory
+            item = output_record.item
+            item.quantity += output_record.quantity_produced
+            self.item_repository.update(item.id, {'quantity': item.quantity})
+            
+            # Record inventory transaction for the produced item
+            self.transaction_repository.create_transaction({
+                'item': item,
+                'transaction_type': 'PRODUCTION_OUT',
+                'quantity': output_record.quantity_produced,  # Positive as it's being produced
+                'reference_model': 'ProductionProcess',
+                'reference_id': process_id,
+                'notes': f"Produced in production process: {process.name}"
+            })
+        
+        # Update the process status to completed
         update_data = {
             'status': 'COMPLETED',
-            'process_end_date': end_date
+            'process_end_date': end_date or timezone.now()
         }
         
         return self.repository.update_process(process_id, update_data)

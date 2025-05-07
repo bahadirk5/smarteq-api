@@ -9,7 +9,8 @@ class BillOfMaterialsSerializer(serializers.ModelSerializer):
     class Meta:
         model = BillOfMaterials
         fields = ['id', 'output_item', 'input_item', 'quantity_required', 
-                  'unit_of_measure', 'sequence', 'created_at', 'updated_at']
+                  'unit_of_measure', 'sequence', 'is_optional', 'is_default',
+                  'alternative_group', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -22,7 +23,8 @@ class BillOfMaterialsDetailSerializer(serializers.ModelSerializer):
         model = BillOfMaterials
         fields = ['id', 'output_item', 'output_item_detail', 'input_item', 
                   'input_item_detail', 'quantity_required', 'unit_of_measure', 
-                  'sequence', 'created_at', 'updated_at']
+                  'sequence', 'is_optional', 'is_default', 'alternative_group',
+                  'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 
                            'output_item_detail', 'input_item_detail']
 
@@ -34,7 +36,8 @@ class BOMComponentSerializer(serializers.ModelSerializer):
     class Meta:
         model = BillOfMaterials
         fields = ['id', 'input_item', 'input_item_detail', 'quantity_required', 
-                  'unit_of_measure', 'sequence']
+                  'unit_of_measure', 'sequence', 'is_optional', 'is_default',
+                  'alternative_group']
         read_only_fields = ['id', 'input_item_detail']
 
 
@@ -43,7 +46,8 @@ class BOMComponentCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BillOfMaterials
-        fields = ['input_item', 'quantity_required', 'unit_of_measure', 'sequence']
+        fields = ['input_item', 'quantity_required', 'unit_of_measure', 'sequence',
+                 'is_optional', 'is_default', 'alternative_group']
     
     def validate_input_item(self, value):
         """Validate that the input item exists"""
@@ -59,3 +63,24 @@ class BOMHierarchySerializer(serializers.Serializer):
     item_sku = serializers.CharField()
     item_type = serializers.CharField()
     components = serializers.ListField(child=serializers.DictField())
+
+
+class CustomizableBOMSerializer(serializers.Serializer):
+    """Serializer for representing a customizable bill of materials with alternatives"""
+    component = BOMComponentSerializer()
+    alternatives = BOMComponentSerializer(many=True)
+
+
+class ProductCustomizationSerializer(serializers.Serializer):
+    """Serializer for customizing a product with specific component selections"""
+    group = serializers.CharField()
+    component_id = serializers.IntegerField()
+
+
+class MaterialRequirementSerializer(serializers.Serializer):
+    """Serializer for material requirements calculation results"""
+    item = ItemListSerializer()
+    quantity = serializers.DecimalField(max_digits=10, decimal_places=3)
+    unit_of_measure = serializers.CharField()
+    available_quantity = serializers.IntegerField()
+    is_sufficient = serializers.BooleanField()

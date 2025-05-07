@@ -35,6 +35,9 @@ class UserService:
     def list_users_by_role(self, role_id: int) -> List[User]:
         return self.user_repository.list_by_role(role_id)
     
+    def list_users_by_department_and_role(self, department_id: int, role_id: int) -> List[User]:
+        return self.user_repository.list_by_department_and_role(department_id, role_id)
+    
     def create_user(
         self, 
         username: str, 
@@ -153,3 +156,24 @@ class UserService:
     
     def search_users(self, query: str) -> List[User]:
         return self.user_repository.search(query)
+    
+    def change_password(self, user_id: int, new_password: str) -> Optional[User]:
+        user = self.get_user(user_id)
+        if not user:
+            return None
+        
+        user.set_password(new_password)
+        user.save()
+        return user
+    
+    def verify_password(self, user: User, password: str) -> bool:
+        return user.check_password(password)
+    
+    def check_permission(self, user: User, target_user_id: int, is_admin: bool = False) -> bool:
+        """Check if user has permission to modify target user"""
+        # Admins can modify any user
+        if is_admin:
+            return True
+        
+        # Regular users can only modify themselves
+        return str(user.id) == str(target_user_id)

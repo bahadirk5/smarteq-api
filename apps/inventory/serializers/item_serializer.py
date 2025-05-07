@@ -8,7 +8,7 @@ class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = ['id', 'name', 'sku', 'description', 'item_type', 'category', 
-                  'unit_of_measure', 'cost_price', 'selling_price', 'created_at', 'updated_at']
+                  'unit_of_measure', 'quantity', 'selling_price', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
@@ -18,7 +18,7 @@ class ItemListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Item
-        fields = ['id', 'name', 'sku', 'item_type', 'category_name']
+        fields = ['id', 'name', 'sku', 'item_type', 'category_name', 'unit_of_measure', 'quantity']
 
 
 class ItemDetailSerializer(serializers.ModelSerializer):
@@ -29,7 +29,7 @@ class ItemDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = ['id', 'name', 'sku', 'description', 'item_type', 'item_type_display', 
-                  'category', 'category_name', 'unit_of_measure', 'cost_price', 
+                  'category', 'category_name', 'unit_of_measure', 'quantity', 
                   'selling_price', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'category_name', 'item_type_display']
 
@@ -53,7 +53,7 @@ class ItemCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
         fields = ['name', 'sku', 'description', 'item_type', 'category', 
-                  'unit_of_measure', 'cost_price', 'selling_price']
+                  'unit_of_measure', 'quantity', 'selling_price']
     
     def validate_sku(self, value):
         """Validate that the SKU is unique"""

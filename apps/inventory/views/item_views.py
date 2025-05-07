@@ -34,30 +34,71 @@ class ItemViewSet(viewsets.ViewSet):
     
     def create(self, request):
         """Create a new item"""
+        # Debug için Request data'yu loglayalım
+        print("Request data:", request.data)
+        
         serializer = ItemCreateUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
+        print("Is Valid:", serializer.is_valid())
+        
+        if not serializer.is_valid():
+            print("Validation Errors:", serializer.errors)
+            return error_response(serializer.errors)
+        
+        try:
+            # Debug için validated_data'yu loglayalım
+            print("Validated data:", serializer.validated_data)
+            
+            # Proje ID'sini request.data'dan al
+            project_id = request.data.get('project_id')
+            print("Project ID:", project_id)
+            
+            quantity = request.data.get('quantity', 0)
+            minimum_stock_level = request.data.get('minimum_stock_level', 0)
+            notes = request.data.get('notes')
+            
+            # Eğer proje ID varsa, ürünü projeye atayarak oluştur
+            if project_id:
+                try:
+                    item = self.service.create_item_with_project(
+                        serializer.validated_data, 
+                        project_id=project_id,
+                        quantity=quantity,
+                        minimum_stock_level=minimum_stock_level,
+                        notes=notes
+                    )
+                except Exception as e:
+                    print("Error in create_item_with_project:", str(e))
+                    return error_response(str(e))
+            else:
+                # Normal ürün oluştur işlemi
                 item = self.service.create_item(serializer.validated_data)
-                result_serializer = ItemDetailSerializer(item)
-                return success_response(
-                    data=result_serializer.data,
-                    status_code=status.HTTP_201_CREATED
-                )
-            except Exception as e:
-                return error_response(str(e))
-        return error_response(serializer.errors)
+                
+            result_serializer = ItemDetailSerializer(item)
+            return success_response(
+                data=result_serializer.data,
+                status_code=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            print("Exception in create:", str(e))
+            return error_response(str(e))
     
     def update(self, request, pk=None):
         """Update an existing item"""
-        serializer = ItemCreateUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                item = self.service.update_item(pk, serializer.validated_data)
-                result_serializer = ItemDetailSerializer(item)
-                return success_response(data=result_serializer.data)
-            except Exception as e:
-                return error_response(str(e))
-        return error_response(serializer.errors)
+        try:
+            # Önce mevcut ürünü al
+            instance = self.service.get_item(pk)
+            # instance parametresini ekleyerek serializer oluştur
+            serializer = ItemCreateUpdateSerializer(instance, data=request.data)
+            if serializer.is_valid():
+                try:
+                    item = self.service.update_item(pk, serializer.validated_data)
+                    result_serializer = ItemDetailSerializer(item)
+                    return success_response(data=result_serializer.data)
+                except Exception as e:
+                    return error_response(str(e))
+            return error_response(serializer.errors)
+        except Exception as e:
+            return error_response(str(e))
     
     def partial_update(self, request, pk=None):
         """Partially update an existing item"""
@@ -75,8 +116,20 @@ class ItemViewSet(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         """Delete an item"""
         try:
+            item = self.service.get_item(pk)
+            item_id = item.id
+            item_name = item.name
+            item_sku = item.sku
             self.service.delete_item(pk)
-            return success_response(status_code=status.HTTP_204_NO_CONTENT)
+            return success_response(
+                data={
+                    "id": str(item_id), 
+                    "name": item_name, 
+                    "sku": item_sku,
+                    "message": "Ürün başarıyla silindi"
+                },
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return error_response(str(e))
     
@@ -148,6 +201,34 @@ class ItemViewSet(viewsets.ViewSet):
         try:
             items = self.service.get_final_products()
             serializer = ItemListSerializer(items, many=True)
+            return success_response(data=serializer.data)
+        except Exception as e:
+            return error_response(str(e))
+    
+    @action(detail=True, methods=['get'])
+    def get_quantity(self, request, pk=None):
+        """Get the current quantity of an item"""
+        try:
+            quantity = self.service.get_item_quantity(pk)
+            return success_response(data={'quantity': quantity})
+        except Exception as e:
+            return error_response(str(e))
+            
+    @action(detail=True, methods=['post'])
+    def update_quantity(self, request, pk=None):
+        """Update the quantity of an item"""
+        try:
+            quantity = request.data.get('quantity')
+            if quantity is None:
+                return error_response('quantity parameter is required')
+                
+            try:
+                quantity = int(quantity)
+            except ValueError:
+                return error_response('quantity must be an integer')
+                
+            item = self.service.update_item_quantity(pk, quantity)
+            serializer = ItemDetailSerializer(item)
             return success_response(data=serializer.data)
         except Exception as e:
             return error_response(str(e))

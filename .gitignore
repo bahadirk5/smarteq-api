@@ -115,3 +115,6 @@ coverage.xml
 rest_framework/
 
 # Project specific ignores - Add any project specific ignores here if needed
+
+# windsurf rules
+.windsurfrules

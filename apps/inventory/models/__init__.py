@@ -5,6 +5,7 @@ from apps.inventory.models.production_process import ProductionProcess
 from apps.inventory.models.process_item_input import ProcessItemInput
 from apps.inventory.models.process_item_output import ProcessItemOutput
 from apps.inventory.models.purchase_order_line import PurchaseOrderLine
+from .inventory_transaction import InventoryTransaction
 
 __all__ = [
     'Category',
@@ -14,4 +15,5 @@ __all__ = [
     'ProcessItemInput',
     'ProcessItemOutput',
     'PurchaseOrderLine',
+    'InventoryTransaction',
 ]

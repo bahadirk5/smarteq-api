@@ -36,14 +36,16 @@ class ProjectViewSet(viewsets.ViewSet):
 
     def update(self, request, pk=None):
         self.check_permissions(request)
-        serializer = ProjectSerializer(data=request.data)
+        project = ProjectService().get_project(pk)  # Önce mevcut projeyi al
+        serializer = ProjectSerializer(instance=project, data=request.data)
         serializer.is_valid(raise_exception=True)
         project = ProjectService().update_project(pk, serializer.validated_data)
         return success_response(data=ProjectSerializer(project).data)
 
     def partial_update(self, request, pk=None):
         self.check_permissions(request)
-        serializer = ProjectSerializer(data=request.data, partial=True)
+        project = ProjectService().get_project(pk)  # Önce mevcut projeyi al
+        serializer = ProjectSerializer(instance=project, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         project = ProjectService().update_project(pk, serializer.validated_data)
         return success_response(data=ProjectSerializer(project).data)

@@ -38,10 +38,19 @@ class CategoryViewSet(viewsets.ViewSet):
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             try:
-                category = self.service.create_category(serializer.validated_data)
+                validated_data = serializer.validated_data.copy()
+                # parent_category alanını düzgün formata getir
+                if 'parent_category' in validated_data and isinstance(validated_data['parent_category'], dict):
+                    if 'id' in validated_data['parent_category']:
+                        validated_data['parent_category_id'] = validated_data['parent_category']['id']
+                    del validated_data['parent_category']
+                
+                category = self.service.create_category(validated_data)
                 result_serializer = CategoryDetailSerializer(category)
+                data = result_serializer.data
+                data['message'] = "Kategori başarıyla oluşturuldu"
                 return success_response(
-                    data=result_serializer.data,
+                    data=data,
                     status_code=status.HTTP_201_CREATED
                 )
             except Exception as e:
@@ -53,9 +62,22 @@ class CategoryViewSet(viewsets.ViewSet):
         serializer = CategorySerializer(data=request.data)
         if serializer.is_valid():
             try:
-                category = self.service.update_category(pk, serializer.validated_data)
+                validated_data = serializer.validated_data.copy()
+                
+                # parent_category alanını düzgün formata getir
+                if 'parent_category' in validated_data and isinstance(validated_data['parent_category'], dict):
+                    if 'id' in validated_data['parent_category']:
+                        validated_data['parent_category_id'] = validated_data['parent_category']['id']
+                    del validated_data['parent_category']
+                
+                category = self.service.update_category(pk, validated_data)
                 result_serializer = CategoryDetailSerializer(category)
-                return success_response(data=result_serializer.data)
+                data = result_serializer.data
+                data['message'] = "Kategori başarıyla güncellendi"
+                return success_response(
+                    data=data,
+                    status_code=status.HTTP_200_OK
+                )
             except Exception as e:
                 return error_response(str(e))
         return error_response(serializer.errors)
@@ -66,9 +88,22 @@ class CategoryViewSet(viewsets.ViewSet):
             category = self.service.get_category(pk)
             serializer = CategorySerializer(category, data=request.data, partial=True)
             if serializer.is_valid():
-                updated_category = self.service.update_category(pk, serializer.validated_data)
+                validated_data = serializer.validated_data.copy()
+                
+                # parent_category alanını düzgün formata getir
+                if 'parent_category' in validated_data and isinstance(validated_data['parent_category'], dict):
+                    if 'id' in validated_data['parent_category']:
+                        validated_data['parent_category_id'] = validated_data['parent_category']['id']
+                    del validated_data['parent_category']
+                
+                updated_category = self.service.update_category(pk, validated_data)
                 result_serializer = CategoryDetailSerializer(updated_category)
-                return success_response(data=result_serializer.data)
+                data = result_serializer.data
+                data['message'] = "Kategori başarıyla güncellendi"
+                return success_response(
+                    data=data,
+                    status_code=status.HTTP_200_OK
+                )
             return error_response(serializer.errors)
         except Exception as e:
             return error_response(str(e))
@@ -76,8 +111,18 @@ class CategoryViewSet(viewsets.ViewSet):
     def destroy(self, request, pk=None):
         """Delete a category"""
         try:
+            category = self.service.get_category(pk)
+            category_id = category.id
+            category_name = category.name
             self.service.delete_category(pk)
-            return success_response(status_code=status.HTTP_204_NO_CONTENT)
+            return success_response(
+                data={
+                    "id": str(category_id), 
+                    "name": category_name,
+                    "message": "Kategori başarıyla silindi"
+                },
+                status_code=status.HTTP_200_OK
+            )
         except Exception as e:
             return error_response(str(e))
     
@@ -85,8 +130,10 @@ class CategoryViewSet(viewsets.ViewSet):
     def hierarchy(self, request):
         """Get hierarchical structure of categories"""
         try:
-            hierarchy = self.service.get_category_hierarchy()
-            serializer = CategoryHierarchySerializer(hierarchy, many=True)
+            # Get all root categories
+            root_categories = self.service.get_root_categories()
+            # Use the serializer directly on the ORM objects
+            serializer = CategoryHierarchySerializer(root_categories, many=True)
             return success_response(data=serializer.data)
         except Exception as e:
             return error_response(str(e))

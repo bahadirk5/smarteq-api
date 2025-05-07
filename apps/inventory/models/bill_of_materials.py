@@ -30,6 +30,12 @@ class BillOfMaterials(BaseModel):
     )
     unit_of_measure = models.CharField(_('Unit of Measure'), max_length=50)
     sequence = models.IntegerField(_('Sequence'), default=10, help_text=_('Order of assembly/production'))
+    is_optional = models.BooleanField(_('Optional Component'), default=False,
+                                    help_text=_('Can this component be omitted or substituted'))
+    is_default = models.BooleanField(_('Default Component'), default=True,
+                                   help_text=_('Is this the default component to use'))
+    alternative_group = models.CharField(_('Alternative Group'), max_length=50, blank=True, null=True,
+                                      help_text=_('Group identifier for alternative components'))
 
     class Meta(BaseModel.Meta):
         verbose_name = _('Bill of Materials')

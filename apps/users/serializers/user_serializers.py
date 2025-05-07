@@ -6,6 +6,15 @@ from apps.users.serializers.role_serializers import RoleSerializer
 # User = get_user_model()
 from apps.users.models.user import User 
 
+
+class UserMinimalSerializer(serializers.ModelSerializer):
+    """Minimal User serializer with only basic fields"""
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name']
+        read_only_fields = fields
+
+
 class UserSerializer(serializers.ModelSerializer):
     department_name = serializers.SerializerMethodField()
     role_name = serializers.SerializerMethodField()

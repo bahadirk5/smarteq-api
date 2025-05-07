@@ -44,22 +44,44 @@ class CategoryService:
     
     def create_category(self, category_data):
         """Create a new category"""
+        # Check if parent category already has a parent - only allow one level of nesting
+        parent_id = category_data.get('parent_category_id')
+        if parent_id:
+            parent = self.repository.get_category_by_id(parent_id)
+            if parent.parent_category is not None:
+                raise ValueError('Categories can only be nested one level deep. This parent already has a parent.')
+                
         return self.repository.create_category(category_data)
     
     def update_category(self, category_id, category_data):
         """Update an existing category"""
+        # Check if parent category already has a parent - only allow one level of nesting
+        parent_id = category_data.get('parent_category_id')
+        if parent_id:
+            parent = self.repository.get_category_by_id(parent_id)
+            if parent.parent_category is not None:
+                raise ValueError('Categories can only be nested one level deep. This parent already has a parent.')
+            
+            # Also check that we're not creating a cycle
+            current = parent
+            while current.parent_category is not None:
+                if str(current.parent_category.id) == str(category_id):
+                    raise ValueError('Cannot move a category to its own descendant')
+                current = current.parent_category
+                
         return self.repository.update_category(category_id, category_data)
     
     def delete_category(self, category_id):
         """Delete a category"""
-        # Check if category has subcategories or items
+        # Fetch the subcategories
         subcategories = self.repository.get_subcategories(category_id)
-        if subcategories.exists():
-            raise ValueError('Cannot delete a category that has subcategories')
         
-        # We also might want to check if there are any items in this category
-        # This would require an ItemRepository dependency
+        # Recursive deletion of subcategories
+        for subcategory in subcategories:
+            # First recursively delete any deeper subcategories
+            self.delete_category(subcategory.id)
         
+        # Now it's safe to delete the category itself
         return self.repository.delete_category(category_id)
     
     def move_category(self, category_id, new_parent_id=None):

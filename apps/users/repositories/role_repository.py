@@ -4,7 +4,7 @@ from apps.users.repositories.base_repository import BaseRepository
 
 class RoleRepository(BaseRepository):
     def __init__(self):
-        super().__init__(Role)
+        self.model = Role
     
     def get_by_name(self, name: str) -> Optional[Role]:
         try:

@@ -1,6 +1,10 @@
 class BaseRepository:
     model = None
 
+    def __init__(self, model_class=None):
+        if model_class:
+            self.model = model_class
+
     def create(self, **kwargs):
         return self.model.objects.create(**kwargs)
 
@@ -21,3 +25,6 @@ class BaseRepository:
         obj = self.model.objects.get(pk=pk)
         obj.delete()
         return obj
+
+    def filter(self, **kwargs):
+        return self.model.objects.filter(**kwargs)

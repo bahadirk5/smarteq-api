@@ -8,25 +8,28 @@ class CategoryRepository:
     Abstracts all database operations related to Category model.
     """
     
+    def __init__(self):
+        self.model = Category
+    
     def get_all_categories(self):
         """Get all categories ordered by name"""
-        return Category.objects.all()
+        return self.model.objects.all()
     
     def get_category_by_id(self, category_id):
         """Get a specific category by its ID"""
-        return get_object_or_404(Category, id=category_id)
+        return get_object_or_404(self.model, id=category_id)
     
     def get_root_categories(self):
         """Get all top-level categories (with no parent)"""
-        return Category.objects.filter(parent_category__isnull=True)
+        return self.model.objects.filter(parent_category__isnull=True)
     
     def get_subcategories(self, parent_id):
         """Get all subcategories for a given parent category"""
-        return Category.objects.filter(parent_category_id=parent_id)
+        return self.model.objects.filter(parent_category_id=parent_id)
     
     def create_category(self, category_data):
         """Create a new category"""
-        return Category.objects.create(**category_data)
+        return self.model.objects.create(**category_data)
     
     def update_category(self, category_id, category_data):
         """Update an existing category"""

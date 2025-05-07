@@ -4,7 +4,7 @@ from apps.users.repositories.base_repository import BaseRepository
 
 class DepartmentRepository(BaseRepository):
     def __init__(self):
-        super().__init__(Department)
+        self.model = Department
     
     def get_by_name(self, name: str) -> Optional[Department]:
         try:
