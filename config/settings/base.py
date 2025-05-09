@@ -32,6 +32,10 @@ LOCAL_APPS = [
     'apps.users',
     'apps.projects',
     'apps.inventory',
+    'apps.customers',
+    'apps.dealers',
+    'apps.sales',
+    'apps.service',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -87,9 +91,15 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
+# https://docs.djangoproject.com/en/5.0/topics/i18n/
+
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+
+# Türkiye saat dilimine geçiş (UTC+3)
+TIME_ZONE = 'Europe/Istanbul'
+
 USE_I18N = True
+
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)

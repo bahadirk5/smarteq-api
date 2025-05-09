@@ -28,10 +28,8 @@ class InventoryTransaction(BaseModel):
         max_length=20,
         choices=TRANSACTION_TYPES
     )
-    quantity = models.DecimalField(
+    quantity = models.IntegerField(
         _('Quantity'),
-        max_digits=10,
-        decimal_places=3,
         help_text=_('Positive for additions, negative for deductions')
     )
     transaction_date = models.DateTimeField(_('Transaction Date'), auto_now_add=True)

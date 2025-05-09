@@ -45,10 +45,8 @@ class ProductionProcess(BaseModel):
         related_name='target_production_processes',
         verbose_name=_('Target Output Item')
     )
-    target_output_quantity = models.DecimalField(
-        _('Target Output Quantity'),
-        max_digits=10,
-        decimal_places=3
+    target_output_quantity = models.IntegerField(
+        _('Target Output Quantity')
     )
 
     class Meta(BaseModel.Meta):

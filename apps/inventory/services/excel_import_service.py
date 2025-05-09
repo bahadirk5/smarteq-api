@@ -5,7 +5,7 @@ from apps.inventory.repositories.excel_import_repository import ExcelImportRepos
 from apps.inventory.repositories.item_repository import ItemRepository
 from apps.inventory.repositories.category_repository import CategoryRepository
 from apps.inventory.repositories.purchase_history_repository import PurchaseHistoryRepository
-from apps.inventory.repositories.bill_of_materials_repository import BillOfMaterialsRepository
+from apps.inventory.repositories.recipe_repository import RecipeRepository  # Replaces BillOfMaterialsRepository
 from apps.inventory.repositories.inventory_transaction_repository import InventoryTransactionRepository
 from apps.inventory.models import Category
 from apps.inventory.models.excel_import import ExcelImport
@@ -196,7 +196,7 @@ class ExcelImportService:
                         processed_count += 1
                     except Exception as e:
                         failed_count += 1
-                        error_details.append(f"Row {index+2}: {str(e)}")
+                        error_details.append(f"Recipe for output '{output_sku}': {str(e)}")
             
             # Update import status
             ExcelImportRepository.update_status(
@@ -221,16 +221,16 @@ class ExcelImportService:
     @staticmethod
     def process_bom_import(import_id):
         """
-        Process Bill of Materials Excel import
+        Process Manufacturing Recipe Excel import
         Expected columns:
         - output_sku: SKU of output item (required)
+        - recipe_name: Name of the recipe (optional)
+        - output_quantity: Quantity of output item produced (required)
         - input_sku: SKU of input item (required)
         - quantity_required: Quantity required (required)
         - unit_of_measure: Unit of measure (required)
         - sequence: Assembly sequence
         - is_optional: Whether component is optional (Y/N)
-        - is_default: Whether component is default (Y/N)
-        - alternative_group: Group ID for alternative components
         """
         excel_import = ExcelImportRepository.get_by_id(import_id)
         if not excel_import:
@@ -241,7 +241,7 @@ class ExcelImportService:
             
         if excel_import.status != 'PENDING':
             return False, "Import already processed"
-        
+    
         try:
             # Update status to processing
             ExcelImportRepository.update_status(
@@ -261,62 +261,88 @@ class ExcelImportService:
             failed_count = 0
             error_details = []
             
-            # Process each row
+            # Group data by output_sku to create recipes
+            grouped_df = df.groupby('output_sku')
+            
+            # Process each recipe
             with transaction.atomic():
-                for index, row in df.iterrows():
+                for output_sku, group_data in grouped_df:
                     try:
-                        output_sku = str(row['output_sku']).strip()
-                        input_sku = str(row['input_sku']).strip()
-                        quantity_required = float(row['quantity_required'])
-                        unit_of_measure = str(row['unit_of_measure']).strip()
-                        
-                        # Optional fields
-                        sequence = int(row.get('sequence', 10)) if pd.notna(row.get('sequence', 10)) else 10
-                        is_optional = True if pd.notna(row.get('is_optional', '')) and str(row.get('is_optional', '')).upper() == 'Y' else False
-                        is_default = False if pd.notna(row.get('is_default', '')) and str(row.get('is_default', '')).upper() == 'N' else True
-                        alternative_group = str(row.get('alternative_group', '')).strip() if pd.notna(row.get('alternative_group', '')) else None
-                        
-                        # Get output and input items
+                        # Get output item
                         output_item = ItemRepository.get_by_sku(output_sku)
-                        input_item = ItemRepository.get_by_sku(input_sku)
-                        
                         if not output_item:
                             raise ValueError(f"Output item with SKU '{output_sku}' not found")
                             
-                        if not input_item:
-                            raise ValueError(f"Input item with SKU '{input_sku}' not found")
+                        # Get recipe name from first row or generate default name
+                        recipe_name = None
+                        output_quantity = 1.0
+                        first_row = group_data.iloc[0]
                         
-                        # Check if BOM entry already exists
-                        bom = BillOfMaterialsRepository.get_by_items(output_item.id, input_item.id)
-                        
-                        if bom:
-                            # Update existing BOM entry
-                            bom = BillOfMaterialsRepository.update(
-                                bom_id=bom.id,
-                                quantity_required=quantity_required,
-                                unit_of_measure=unit_of_measure,
-                                sequence=sequence,
-                                is_optional=is_optional,
-                                is_default=is_default,
-                                alternative_group=alternative_group
-                            )
+                        if 'recipe_name' in group_data.columns and pd.notna(first_row.get('recipe_name')):
+                            recipe_name = str(first_row['recipe_name']).strip()
                         else:
-                            # Create new BOM entry
-                            bom = BillOfMaterialsRepository.create(
-                                output_item=output_item,
-                                input_item=input_item,
-                                quantity_required=quantity_required,
-                                unit_of_measure=unit_of_measure,
-                                sequence=sequence,
-                                is_optional=is_optional,
-                                is_default=is_default,
-                                alternative_group=alternative_group
+                            recipe_name = f"Recipe for {output_item.name}"
+                            
+                        if 'output_quantity' in group_data.columns and pd.notna(first_row.get('output_quantity')):
+                            output_quantity = float(first_row['output_quantity'])
+                            
+                        # Check if recipe already exists
+                        existing_recipe = RecipeRepository.get_by_name_and_output(recipe_name, output_item.id)
+                        
+                        if existing_recipe:
+                            # Update existing recipe
+                            recipe = RecipeRepository.update_recipe(
+                                recipe_id=existing_recipe.id,
+                                name=recipe_name,
+                                output_quantity=output_quantity,
+                                unit_of_measure=str(first_row['unit_of_measure']).strip()
                             )
+                            # Clear existing recipe items to replace with new ones
+                            RecipeRepository.delete_recipe_items(recipe.id)
+                        else:
+                            # Create new recipe
+                            recipe = RecipeRepository.create_recipe(
+                                name=recipe_name,
+                                description=f"Manufacturing recipe for {output_item.name}",
+                                output_item=output_item,
+                                output_quantity=output_quantity,
+                                unit_of_measure=str(first_row['unit_of_measure']).strip()
+                            )
+                        
+                        # Process each input item for this recipe
+                        for idx, row in group_data.iterrows():
+                            try:
+                                input_sku = str(row['input_sku']).strip()
+                                quantity_required = float(row['quantity_required'])
+                                unit_of_measure = str(row['unit_of_measure']).strip()
+                                
+                                # Optional fields
+                                sequence = int(row.get('sequence', 10)) if pd.notna(row.get('sequence', 10)) else 10
+                                is_optional = True if pd.notna(row.get('is_optional', '')) and str(row.get('is_optional', '')).upper() == 'Y' else False
+                                
+                                # Get input item
+                                input_item = ItemRepository.get_by_sku(input_sku)
+                                if not input_item:
+                                    raise ValueError(f"Input item with SKU '{input_sku}' not found")
+                                
+                                # Create recipe item
+                                RecipeRepository.create_recipe_item(
+                                    recipe=recipe,
+                                    input_item=input_item,
+                                    quantity_required=quantity_required,
+                                    unit_of_measure=unit_of_measure,
+                                    sequence=sequence,
+                                    is_optional=is_optional
+                                )
+                            except Exception as e:
+                                # Handle individual input item errors
+                                failed_count += 1
+                                error_details.append(f"Row for '{input_sku}' in recipe '{recipe_name}': {str(e)}")
                         
                         processed_count += 1
                     except Exception as e:
                         failed_count += 1
-                        error_details.append(f"Row {index+2}: {str(e)}")
+                        error_details.append(f"Recipe for output '{output_sku}': {str(e)}")
             
             # Update import status
             ExcelImportRepository.update_status(
@@ -467,7 +493,7 @@ class ExcelImportService:
                         processed_count += 1
                     except Exception as e:
                         failed_count += 1
-                        error_details.append(f"Row {index+2}: {str(e)}")
+                        error_details.append(f"Recipe for output '{output_sku}': {str(e)}")
             
             # Update import status
             ExcelImportRepository.update_status(
@@ -648,7 +674,7 @@ class ExcelImportService:
                         processed_count += 1
                     except Exception as e:
                         failed_count += 1
-                        error_details.append(f"Row {index+2}: {str(e)}")
+                        error_details.append(f"Recipe for output '{output_sku}': {str(e)}")
             
             # Update import status
             ExcelImportRepository.update_status(

@@ -19,10 +19,8 @@ class ProcessItemOutput(BaseModel):
         related_name='process_outputs',
         verbose_name=_('Produced Item')
     )
-    quantity_produced = models.DecimalField(
-        _('Quantity Produced'),
-        max_digits=10,
-        decimal_places=3
+    quantity_produced = models.IntegerField(
+        _('Quantity Produced')
     )
 
     class Meta(BaseModel.Meta):

@@ -2,20 +2,18 @@ from django.db import transaction
 from django.utils import timezone
 from apps.inventory.repositories.production_process_repository import ProductionProcessRepository
 from apps.inventory.repositories.item_repository import ItemRepository
-from apps.inventory.repositories.bill_of_materials_repository import BillOfMaterialsRepository
 from apps.inventory.repositories.inventory_transaction_repository import InventoryTransactionRepository
 
 
 class ProductionProcessService:
     """
     Service class to handle business logic for Production Process operations.
-    Uses ProductionProcessRepository, ItemRepository and BillOfMaterialsRepository for data access.
+    Uses ProductionProcessRepository, ItemRepository and RecipeRepository for data access.
     """
     
     def __init__(self):
         self.repository = ProductionProcessRepository()
         self.item_repository = ItemRepository()
-        self.bom_repository = BillOfMaterialsRepository()
         self.transaction_repository = InventoryTransactionRepository()
     
     def get_all_processes(self):

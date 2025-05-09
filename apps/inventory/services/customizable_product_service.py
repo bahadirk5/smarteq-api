@@ -1,6 +1,6 @@
 from django.db import transaction
 from apps.inventory.repositories.item_repository import ItemRepository
-from apps.inventory.repositories.bill_of_materials_repository import BillOfMaterialsRepository
+from apps.inventory.repositories.recipe_repository import RecipeRepository  # Replaces BillOfMaterialsRepository
 
 
 class CustomizableProductService:
@@ -20,7 +20,7 @@ class CustomizableProductService:
             return None, "Item is not a final product"
             
         # Get all BOM entries for this product
-        bom_entries = BillOfMaterialsRepository.get_by_output_item(item_id)
+        bom_entries = RecipeRepository.get_by_output_item(item_id)
         
         # Group components by alternative_group
         bom_structure = []
@@ -73,8 +73,8 @@ class CustomizableProductService:
         if not item.is_final_product:
             return None, "Item is not a final product"
         
-        # Get standard BOM entries
-        bom_entries = BillOfMaterialsRepository.get_by_output_item(item_id)
+        # Get standard recipe components
+        bom_entries = RecipeRepository.get_by_output_item(item_id)
         
         # Validate component selections
         if component_selections:

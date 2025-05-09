@@ -56,23 +56,90 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format': '[{asctime}] {levelname} {module} {process:d} {thread:d} {message}',
             'style': '{',
+            'datefmt': '%d/%b/%Y %H:%M:%S'
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '[{asctime}] {levelname} {message}',
             'style': '{',
+            'datefmt': '%d/%b/%Y %H:%M:%S'
+        },
+        'colorful': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s[%(asctime)s] %(levelname)s %(name)s:%(lineno)d %(message)s',
+            'datefmt': '%d/%b/%Y %H:%M:%S',
+        },
+        'sql': {
+            'format': '[%(asctime)s] %(message)s',
+            'datefmt': '%d/%b/%Y %H:%M:%S',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
         },
     },
     'handlers': {
         'console': {
             'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'class': 'colorlog.StreamHandler',
+            'formatter': 'colorful',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'debug.log'),
+            'formatter': 'verbose',
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'error.log'),
+            'formatter': 'verbose',
+        },
+        'sql_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'sql.log'),
+            'formatter': 'sql',
+            'filters': ['require_debug_true'],
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,
+        }
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.request': {
+            'handlers': ['error_file', 'mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['sql_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'apps.inventory': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': False,
         },
     },
     'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+        'handlers': ['console', 'file', 'error_file'],
+        'level': 'DEBUG',
     },
 }

@@ -19,10 +19,8 @@ class ProcessItemInput(BaseModel):
         related_name='process_inputs',
         verbose_name=_('Consumed Item')
     )
-    quantity_consumed = models.DecimalField(
-        _('Quantity Consumed'),
-        max_digits=10,
-        decimal_places=3
+    quantity_consumed = models.IntegerField(
+        _('Quantity Consumed')
     )
 
     class Meta(BaseModel.Meta):

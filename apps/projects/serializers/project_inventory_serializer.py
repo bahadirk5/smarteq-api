@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from apps.projects.models import ProjectInventory
-from apps.inventory.serializers import ItemSerializer
+from apps.inventory.serializers.item_serializer import ItemSerializer
 
 
 class ProjectInventorySerializer(serializers.ModelSerializer):

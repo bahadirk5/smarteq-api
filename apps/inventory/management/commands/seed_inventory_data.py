@@ -2,10 +2,11 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from decimal import Decimal
 
 from apps.inventory.models import (
-    Category, Item, BillOfMaterials, ProductionProcess, 
-    ProcessItemInput, ProcessItemOutput, PurchaseOrderLine
+    Category, Item, Recipe, RecipeItem, Production, ProductionItem,
+    ProductionProcess, ProcessItemInput, ProcessItemOutput, PurchaseOrderLine
 )
 from apps.projects.models import Project
 
@@ -22,7 +23,8 @@ class Command(BaseCommand):
             with transaction.atomic():
                 self.create_categories()
                 self.create_items()
-                self.create_bill_of_materials()
+                self.create_recipes()
+                self.create_productions()
                 self.create_production_processes()
                 self.create_purchase_order_lines()
                 
@@ -109,7 +111,7 @@ class Command(BaseCommand):
             item_type='RAW',
             category=metals,
             unit_of_measure='sheet',
-            cost_price=15.50,
+            purchase_price=15.50,
             selling_price=0.00  # Raw materials aren't sold directly
         )
         
@@ -120,7 +122,7 @@ class Command(BaseCommand):
             item_type='RAW',
             category=metals,
             unit_of_measure='meter',
-            cost_price=8.25,
+            purchase_price=8.25,
             selling_price=0.00
         )
         
@@ -131,7 +133,7 @@ class Command(BaseCommand):
             item_type='RAW',
             category=plastics,
             unit_of_measure='kg',
-            cost_price=5.00,
+            purchase_price=5.00,
             selling_price=0.00
         )
         
@@ -143,7 +145,7 @@ class Command(BaseCommand):
             item_type='INTERMEDIATE',
             category=sensors,
             unit_of_measure='piece',
-            cost_price=3.50,
+            purchase_price=3.50,
             selling_price=7.00
         )
         
@@ -154,7 +156,7 @@ class Command(BaseCommand):
             item_type='INTERMEDIATE',
             category=sensors,
             unit_of_measure='piece',
-            cost_price=4.75,
+            purchase_price=4.75,
             selling_price=9.50
         )
         
@@ -165,7 +167,7 @@ class Command(BaseCommand):
             item_type='INTERMEDIATE',
             category=circuit_boards,
             unit_of_measure='piece',
-            cost_price=12.00,
+            purchase_price=12.00,
             selling_price=24.00
         )
         
@@ -176,7 +178,7 @@ class Command(BaseCommand):
             item_type='INTERMEDIATE',
             category=mechanical,
             unit_of_measure='piece',
-            cost_price=7.00,
+            purchase_price=7.00,
             selling_price=14.00
         )
         
@@ -188,7 +190,7 @@ class Command(BaseCommand):
             item_type='FINAL',
             category=finished_products,
             unit_of_measure='piece',
-            cost_price=35.00,
+            purchase_price=35.00,
             selling_price=89.99
         )
         
@@ -199,14 +201,14 @@ class Command(BaseCommand):
             item_type='FINAL',
             category=finished_products,
             unit_of_measure='piece',
-            cost_price=45.00,
+            purchase_price=45.00,
             selling_price=129.99
         )
         
         self.stdout.write(self.style.SUCCESS('Items created successfully!'))
     
-    def create_bill_of_materials(self):
-        self.stdout.write('Creating bill of materials...')
+    def create_recipes(self):
+        self.stdout.write('Creating manufacturing recipes...')
         
         # Get components and products
         temp_sensor = Item.objects.get(sku='CMP-SN-001')
@@ -219,83 +221,176 @@ class Command(BaseCommand):
         smart_thermostat = Item.objects.get(sku='PRD-TH-001')
         pressure_controller = Item.objects.get(sku='PRD-PC-001')
         
-        # Create BOM for enclosure
-        BillOfMaterials.objects.create(
+        # Create Recipe for enclosure
+        enclosure_recipe = Recipe.objects.create(
+            name='Enclosure Manufacturing',
+            description='Recipe for manufacturing the device enclosure',
             output_item=enclosure,
+            output_quantity=1.0,
+            unit_of_measure='piece',
+            active=True
+        )
+        
+        # Add inputs to enclosure recipe
+        RecipeItem.objects.create(
+            recipe=enclosure_recipe,
             input_item=plastic_granules,
             quantity_required=0.5,
             unit_of_measure='kg',
-            sequence=10
+            sequence=10,
+            is_optional=False
         )
         
-        # Create BOM for main board
-        BillOfMaterials.objects.create(
+        # Create Recipe for main board
+        mainboard_recipe = Recipe.objects.create(
+            name='Main Board Assembly',
+            description='Recipe for assembling the main circuit board',
             output_item=main_board,
+            output_quantity=1.0,
+            unit_of_measure='piece',
+            active=True
+        )
+        
+        # Add inputs to main board recipe
+        RecipeItem.objects.create(
+            recipe=mainboard_recipe,
             input_item=aluminum,
             quantity_required=0.1,
             unit_of_measure='sheet',
-            sequence=10
+            sequence=10,
+            is_optional=False
         )
         
-        # Create BOM for smart thermostat
-        BillOfMaterials.objects.create(
+        # Create Recipe for smart thermostat
+        thermostat_recipe = Recipe.objects.create(
+            name='Smart Thermostat Assembly',
+            description='Recipe for assembling the smart thermostat product',
             output_item=smart_thermostat,
+            output_quantity=1.0,
+            unit_of_measure='piece',
+            active=True
+        )
+        
+        # Add inputs to thermostat recipe
+        RecipeItem.objects.create(
+            recipe=thermostat_recipe,
             input_item=temp_sensor,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=10
+            sequence=10,
+            is_optional=False
         )
         
-        BillOfMaterials.objects.create(
-            output_item=smart_thermostat,
+        RecipeItem.objects.create(
+            recipe=thermostat_recipe,
             input_item=main_board,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=20
+            sequence=20,
+            is_optional=False
         )
         
-        BillOfMaterials.objects.create(
-            output_item=smart_thermostat,
+        RecipeItem.objects.create(
+            recipe=thermostat_recipe,
             input_item=enclosure,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=30
+            sequence=30,
+            is_optional=False
         )
         
-        # Create BOM for pressure controller
-        BillOfMaterials.objects.create(
+        # Create Recipe for pressure controller
+        pressure_recipe = Recipe.objects.create(
+            name='Pressure Controller Assembly',
+            description='Recipe for assembling the pressure controller product',
             output_item=pressure_controller,
+            output_quantity=1.0,
+            unit_of_measure='piece',
+            active=True
+        )
+        
+        # Add inputs to pressure controller recipe
+        RecipeItem.objects.create(
+            recipe=pressure_recipe,
             input_item=pressure_sensor,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=10
+            sequence=10,
+            is_optional=False
         )
         
-        BillOfMaterials.objects.create(
-            output_item=pressure_controller,
+        RecipeItem.objects.create(
+            recipe=pressure_recipe,
             input_item=main_board,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=20
+            sequence=20,
+            is_optional=False
         )
         
-        BillOfMaterials.objects.create(
-            output_item=pressure_controller,
+        RecipeItem.objects.create(
+            recipe=pressure_recipe,
             input_item=enclosure,
             quantity_required=1,
             unit_of_measure='piece',
-            sequence=30
+            sequence=30,
+            is_optional=False
         )
         
-        BillOfMaterials.objects.create(
-            output_item=pressure_controller,
+        RecipeItem.objects.create(
+            recipe=pressure_recipe,
             input_item=steel,
             quantity_required=0.2,
             unit_of_measure='meter',
-            sequence=40
+            sequence=40,
+            is_optional=False
         )
         
-        self.stdout.write(self.style.SUCCESS('Bill of materials created successfully!'))
+        self.stdout.write(self.style.SUCCESS('Manufacturing recipes created successfully!'))
+    
+    def create_productions(self):
+        self.stdout.write('Creating production records...')
+        
+        # Get recipes and user
+        thermostat_recipe = Recipe.objects.get(name='Smart Thermostat Assembly')
+        enclosure_recipe = Recipe.objects.get(name='Enclosure Manufacturing')
+        admin_user = User.objects.get(username='admin')
+        
+        # Create production record for smart thermostat production
+        thermostat_production = Production.objects.create(
+            recipe=thermostat_recipe,
+            output_quantity=Decimal('5.0'),  # Produced 5 units
+            executed_by=admin_user,
+            notes='Initial production batch of smart thermostats'
+        )
+        
+        # Record consumed items based on recipe
+        for recipe_item in thermostat_recipe.items.all():
+            ProductionItem.objects.create(
+                production=thermostat_production,
+                input_item=recipe_item.input_item,
+                quantity_consumed=recipe_item.quantity_required * Decimal('5.0'),  # 5 times the recipe quantity
+                unit_of_measure=recipe_item.unit_of_measure
+            )
+        
+        # Create production record for enclosures
+        enclosure_production = Production.objects.create(
+            recipe=enclosure_recipe,
+            output_quantity=Decimal('10.0'),  # Produced 10 units
+            executed_by=admin_user,
+            notes='Enclosure manufacturing batch'
+        )
+        
+        # Record consumed items based on recipe
+        for recipe_item in enclosure_recipe.items.all():
+            ProductionItem.objects.create(
+                production=enclosure_production,
+                input_item=recipe_item.input_item,
+                quantity_consumed=recipe_item.quantity_required * Decimal('10.0'),  # 10 times the recipe quantity
+                unit_of_measure=recipe_item.unit_of_measure
+            )
+        
+        self.stdout.write(self.style.SUCCESS('Production records created successfully!'))
     
     def create_production_processes(self):
         self.stdout.write('Creating production processes...')
